@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "copper_brain"
+version = "0.1.0"
+description = "Layer-2 Dalio-style fundamental regime model for copper. Advisory flag-file only."
+requires-python = ">=3.11,<3.12"
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+include = ["copper_brain*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-x -q"
+markers = [
+    "network: test hits a live free data source (skipped by default in CI)",
+]

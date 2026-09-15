@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copper Brain — regime dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#26303d;
+    --ink:#e6edf3; --mut:#8b97a7; --cu:#d98445; --cu2:#b5651d;
+    --bull:#3fb950; --bear:#f85149; --neut:#d9a441; --warn:#e3b341;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--cu)}
+  header{display:flex;align-items:center;gap:16px;padding:18px 24px;
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,#141a22,#0e1116)}
+  header .logo{width:34px;height:34px;border-radius:9px;
+    background:radial-gradient(circle at 30% 30%,var(--cu),var(--cu2));
+    box-shadow:0 0 20px rgba(217,132,69,.35)}
+  header h1{font-size:18px;margin:0;letter-spacing:.3px}
+  header .sub{color:var(--mut);font-size:12px;margin-top:2px}
+  header .spacer{flex:1}
+  header .meta{color:var(--mut);font-size:12px;text-align:right}
+  button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  button:hover{border-color:var(--cu)}
+  .wrap{padding:20px 24px;max-width:1500px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow)}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--mut);margin:0 0 12px}
+  .col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+  .col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+  .col-12{grid-column:span 12}
+  @media(max-width:1100px){.grid>*{grid-column:span 12 !important}}
+  /* hero */
+  .hero{display:flex;align-items:center;gap:28px}
+  .regime-big{font-size:40px;font-weight:800;letter-spacing:.5px;line-height:1}
+  .regime-tag{display:inline-block;padding:3px 10px;border-radius:999px;
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  .b-bull{color:var(--bull)}.b-bear{color:var(--bear)}.b-neut{color:var(--neut)}
+  .bg-bull{background:rgba(63,185,80,.15);color:var(--bull)}
+  .bg-bear{background:rgba(248,81,73,.15);color:var(--bear)}
+  .bg-neut{background:rgba(217,164,65,.15);color:var(--neut)}
+  .bg-warn{background:rgba(227,179,65,.15);color:var(--warn)}
+  .kv{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px}
+  .kv div{font-size:12px;color:var(--mut)}
+  .kv b{display:block;color:var(--ink);font-size:15px;font-weight:600;margin-top:2px}
+  .gauge-wrap{position:relative;width:180px;height:120px;flex:none}
+  .gauge-num{position:absolute;left:0;right:0;bottom:8px;text-align:center;
+    font-size:26px;font-weight:800}
+  .gauge-cap{position:absolute;left:0;right:0;bottom:-6px;text-align:center;
+    font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .ok{background:rgba(63,185,80,.15);color:var(--bull)}
+  .stale{background:rgba(227,179,65,.15);color:var(--warn)}
+  .err{background:rgba(248,81,73,.15);color:var(--bear)}
+  .empty{background:rgba(139,151,167,.15);color:var(--mut)}
+  /* findings */
+  .find{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .find:last-child{border-bottom:0}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+  .d-bull{background:var(--bull)}.d-bear{background:var(--bear)}
+  .d-flat{background:var(--mut)}.d-warn{background:var(--warn)}
+  .muted{color:var(--mut)}
+  .note{color:var(--mut);font-size:12px;margin-top:8px}
+  canvas{max-width:100%}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"></div>
+  <div>
+    <h1>Copper Brain</h1>
+    <div class="sub">Layer-2 fundamental copper regime model · advisory only</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="meta" id="meta">loading…</div>
+  <button onclick="refresh()">↻ Refresh</button>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- HERO -->
+    <div class="card col-8">
+      <h2>Current regime</h2>
+      <div class="hero">
+        <div class="gauge-wrap">
+          <canvas id="gauge" width="180" height="120"></canvas>
+          <div class="gauge-num" id="scoreNum">–</div>
+          <div class="gauge-cap">copper score</div>
+        </div>
+        <div>
+          <div class="regime-big" id="regimeBig">—</div>
+          <div style="margin-top:8px" id="regimeTags"></div>
+          <div class="kv" id="heroKv"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTION -->
+    <div class="card col-4">
+      <h2>Projection (5d / 21d)</h2>
+      <div id="projBox"></div>
+    </div>
+
+    <!-- PRICE -->
+    <div class="card col-8">
+      <h2>Copper price &amp; 50d trend</h2>
+      <canvas id="priceChart" height="110"></canvas>
+    </div>
+
+    <!-- COMPONENTS -->
+    <div class="card col-4">
+      <h2>Score components (weighted)</h2>
+      <canvas id="compChart" height="180"></canvas>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="card col-8">
+      <h2>LME inventory &amp; curve (backwardation = tight)</h2>
+      <canvas id="invChart" height="110"></canvas>
+      <div class="note" id="invNote"></div>
+    </div>
+
+    <!-- V2 GATE -->
+    <div class="card col-4">
+      <h2>v2 model — overfit gate</h2>
+      <div id="v2Box"></div>
+    </div>
+
+    <!-- FINDINGS -->
+    <div class="card col-6">
+      <h2>What the data is saying</h2>
+      <div id="findings"></div>
+    </div>
+
+    <!-- SOURCES + CROSSCHECK -->
+    <div class="card col-6">
+      <h2>Data sources &amp; cross-check</h2>
+      <div id="crosscheck" class="note"></div>
+      <table id="sources"><thead><tr>
+        <th>Source</th><th>Health</th><th>Through</th><th class="num">Age (d)</th><th class="num">Rows</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="card col-12">
+      <h2>Score history (recent update runs)</h2>
+      <canvas id="histChart" height="60"></canvas>
+    </div>
+  </div>
+  <div class="note" style="text-align:center;margin-top:18px">
+    Copper Brain writes one advisory flag-file. It never sends orders. Bound to 127.0.0.1.
+  </div>
+</div>
+
+<script>
+const C = {ink:'#e6edf3',mut:'#8b97a7',cu:'#d98445',bull:'#3fb950',bear:'#f85149',
+  neut:'#d9a441',line:'#26303d',grid:'rgba(255,255,255,.05)'};
+Chart.defaults.color = C.mut;
+Chart.defaults.borderColor = C.grid;
+Chart.defaults.font.family = "Segoe UI, system-ui, sans-serif";
+let charts = {};
+
+function regimeColor(r){return r==='bullish'?C.bull:r==='bearish'?C.bear:C.neut;}
+function fmtPct(x){return x==null?'–':(x*100).toFixed(1)+'%';}
+
+function destroy(k){ if(charts[k]){charts[k].destroy(); delete charts[k];} }
+
+async function load(url){ const r = await fetch(url); return r.json(); }
+async function refresh(){ render(await load('/api/refresh')); }
+
+function render(s){
+  // meta
+  const gen = new Date(s.generated_at).toLocaleString();
+  document.getElementById('meta').innerHTML =
+    `data through <b style="color:#e6edf3">${s.regime.data_through||'—'}</b> · `+
+    `model <b style="color:#e6edf3">${s.regime.model_version}</b> · updated ${gen}`;
+
+  // hero
+  const reg = s.regime.copper_regime;
+  const big = document.getElementById('regimeBig');
+  big.textContent = reg.toUpperCase();
+  big.className = 'regime-big '+(reg==='bullish'?'b-bull':reg==='bearish'?'b-bear':'b-neut');
+  document.getElementById('scoreNum').textContent = s.regime.score;
+  document.getElementById('scoreNum').style.color = regimeColor(reg);
+
+  let tags = `<span class="regime-tag ${reg==='bullish'?'bg-bull':reg==='bearish'?'bg-bear':'bg-neut'}">${reg}</span>`;
+  if(s.regime.stale) tags += ` <span class="regime-tag bg-warn">stale → neutral</span>`;
+  (s.regime.main_drivers||[]).forEach(d=>{
+    tags += ` <span class="regime-tag bg-neut" style="background:rgba(139,151,167,.12);color:#b6c2d1">${d.replace(/_/g,' ')}</span>`;});
+  document.getElementById('regimeTags').innerHTML = tags;
+
+  const cc = s.crosscheck||{};
+  document.getElementById('heroKv').innerHTML =
+    `<div>Cross-check<b>${cc.verdict||'—'}</b></div>`+
+    `<div>v1 hit-rate 5d<b>${fmtPct(s.hitrate?.hit_rate_5d)}</b></div>`+
+    `<div>v1 hit-rate 21d<b>${fmtPct(s.hitrate?.hit_rate_21d)}</b></div>`+
+    `<div>p(up) 5d / 21d<b>${s.regime.p_up_5d??'—'} / ${s.regime.p_up_21d??'—'}</b></div>`;
+
+  drawGauge(s.regime.score, regimeColor(reg));
+  drawProjection(s.projection, s);
+  drawPrice(s.price);
+  drawComponents(s.components||[]);
+  drawInventory(s.inventory||{});
+  drawV2(s.v2||{});
+  drawFindings(s.findings||[]);
+  drawSources(s.sources||[], cc);
+  drawHistory(s.history||[]);
+}
+
+function drawGauge(score, color){
+  destroy('gauge');
+  const v = Math.max(-100, Math.min(100, score||0));
+  const pos = (v+100)/200; // 0..1
+  charts.gauge = new Chart(document.getElementById('gauge'),{
+    type:'doughnut',
+    data:{datasets:[{data:[pos,1-pos],backgroundColor:[color,'#222b36'],
+      borderWidth:0,circumference:180,rotation:270,cutout:'72%'}]},
+    options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
+}
+
+function drawProjection(p, s){
+  if(!p){document.getElementById('projBox').innerHTML='—';return;}
+  const lean=p.v1.lean;
+  const leanCls=lean==='bullish'?'b-bull':lean==='bearish'?'b-bear':'b-neut';
+  const v2=p.v2||{};
+  const v2pill = v2.status==='live'
+    ? `<span class="pill ok">v2 LIVE</span>`
+    : `<span class="pill stale">v2 SHADOW</span>`;
+  document.getElementById('projBox').innerHTML =
+    `<div style="font-size:13px;color:var(--mut)">v1 advisory lean</div>`+
+    `<div class="regime-big ${leanCls}" style="font-size:28px;margin:4px 0">${lean.toUpperCase()}</div>`+
+    `<div class="kv"><div>score<b>${p.v1.score}</b></div>`+
+    `<div>confidence<b style="text-transform:capitalize">${p.v1.confidence}</b></div></div>`+
+    `<div class="note">${p.v1.note}</div>`+
+    `<hr style="border:0;border-top:1px solid var(--line);margin:12px 0">`+
+    `<div>${v2pill}</div><div class="note">${v2.note||''}</div>`;
+}
+
+function drawPrice(p){
+  destroy('price');
+  if(!p||!p.dates){return;}
+  charts.price = new Chart(document.getElementById('priceChart'),{
+    type:'line',
+    data:{labels:p.dates,datasets:[
+      {label:'Copper',data:p.copper,borderColor:C.cu,backgroundColor:'rgba(217,132,69,.08)',
+       fill:true,pointRadius:0,borderWidth:1.6,tension:.15},
+      {label:'50d SMA',data:p.sma50,borderColor:C.mut,pointRadius:0,borderWidth:1,
+       borderDash:[5,4],tension:.15}
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:10}}},
+      scales:{x:{ticks:{maxTicksLimit:8},grid:{display:false}},
+              y:{grid:{color:C.grid}}}}
+  });
+}
+
+function drawComponents(c){
+  destroy('comp');
+  const labels=c.map(x=>x.label), data=c.map(x=>x.contribution);
+  const colors=data.map(v=>v>0?C.bull:v<0?C.bear:C.mut);
+  charts.comp = new Chart(document.getElementById('compChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:(i)=>`contribution ${i.raw.toFixed(1)} pts`}}},
+      scales:{x:{grid:{color:C.grid},title:{display:true,text:'weighted contribution'}},
+              y:{grid:{display:false}}}}
+  });
+}
+
+function drawInventory(inv){
+  destroy('inv');
+  const note=document.getElementById('invNote');
+  if(!inv||!inv.dates){note.textContent='No LME inventory feed available.';return;}
+  note.textContent='';
+  const ds=[];
+  if(inv.stock) ds.push({label:'LME stock (t)',data:inv.stock,borderColor:C.mut,
+    pointRadius:0,borderWidth:1.4,yAxisID:'y',tension:.1});
+  if(inv.backwardation) ds.push({label:'Backwardation (cash-3m, $/t)',data:inv.backwardation,
+    borderColor:C.cu,pointRadius:0,borderWidth:1.6,yAxisID:'y1',tension:.1});
+  charts.inv = new Chart(document.getElementById('invChart'),{
+    type:'line',
+    data:{labels:inv.dates,datasets:ds},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{boxWidth:10}}},
+      scales:{x:{ticks:{maxTicksLimit:8},grid:{display:false}},
+        y:{position:'left',grid:{color:C.grid},title:{display:true,text:'stock'}},
+        y1:{position:'right',grid:{display:false},title:{display:true,text:'spread'}}}}
+  });
+}
+
+function drawV2(v2){
+  const box=document.getElementById('v2Box');
+  if(!v2||v2.status==='not_trained'){
+    box.innerHTML='<span class="pill empty">not trained</span>'+
+      '<div class="note">Run <code>update --retrain</code>.</div>';return;}
+  const pill = v2.promoted?'<span class="pill ok">PROMOTED · v2 live</span>'
+    :'<span class="pill stale">SHADOW · gate not cleared</span>';
+  let rows='';
+  for(const [h,g] of Object.entries(v2.horizons||{})){
+    rows+=`<tr><td>${h}</td>`+
+      `<td>${g.passes?'<span class="pill ok">pass</span>':'<span class="pill err">fail</span>'}</td>`+
+      `<td class="num">${g.dsr_ratio??'–'}</td>`+
+      `<td class="num">${g.pbo??'–'}</td>`+
+      `<td class="num">${g.profit_factor??'–'}</td></tr>`;
+  }
+  box.innerHTML = pill+
+    `<table style="margin-top:10px"><thead><tr><th>Horizon</th><th>Gate</th>`+
+    `<th class="num">DSR ratio</th><th class="num">PBO</th><th class="num">PF</th></tr></thead>`+
+    `<tbody>${rows}</tbody></table>`+
+    `<div class="note">Promote needs DSR ratio &gt; 0 AND PBO &lt; 0.5 on walk-forward OOS.</div>`;
+}
+
+function drawFindings(f){
+  const map={bull:'d-bull',bear:'d-bear',flat:'d-flat',warn:'d-warn'};
+  document.getElementById('findings').innerHTML = f.length? f.map(x=>
+    `<div class="find"><div class="dot ${map[x.tone]||'d-flat'}"></div><div>${x.text}</div></div>`
+  ).join('') : '<div class="muted">No findings.</div>';
+}
+
+function drawSources(rows, cc){
+  const cls=h=>!h?'empty':h==='ok'?'ok':h.startsWith('stale')?'stale':h==='error'?'err':'empty';
+  document.querySelector('#sources tbody').innerHTML = rows.map(r=>
+    `<tr><td>${r.name}</td><td><span class="pill ${cls(r.health)}">${r.health||'—'}</span></td>`+
+    `<td>${r.data_through||'—'}</td><td class="num">${r.age_days??'—'}</td>`+
+    `<td class="num">${r.rows??'—'}</td></tr>`).join('');
+  let ccTxt='';
+  if(cc&&cc.verdict){
+    const per=Object.entries(cc.per_source||{}).map(([k,v])=>`${k} ${(v*100).toFixed(1)}%`).join(' · ');
+    const vcls=cc.verdict==='ok'?'ok':cc.verdict==='divergent'?'err':'empty';
+    ccTxt=`<span class="pill ${vcls}">cross-check ${cc.verdict}</span> `+
+      (per?`<span class="muted">MoM ${cc.compared_month||''}: ${per}</span>`:'');
+    if(cc.diverging&&cc.diverging.length) ccTxt+=` <span class="muted">diverging: ${cc.diverging.join(', ')}</span>`;
+  }
+  document.getElementById('crosscheck').innerHTML=ccTxt;
+}
+
+function drawHistory(h){
+  destroy('hist');
+  if(!h.length){return;}
+  const labels=h.map(x=> x.ran_at? new Date(x.ran_at).toLocaleDateString():'' );
+  const data=h.map(x=>x.score);
+  charts.hist = new Chart(document.getElementById('histChart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'score',data,borderColor:C.cu,
+      backgroundColor:'rgba(217,132,69,.1)',fill:true,pointRadius:2,borderWidth:1.5,tension:.2}]},
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},
+        y:{min:-100,max:100,grid:{color:C.grid}}}}
+  });
+}
+
+load('/api/state').then(render);
+setInterval(()=>load('/api/state').then(render), 60000);
+</script>
+</body>
+</html>

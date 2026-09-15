@@ -1,0 +1,21 @@
+# Copper Brain — runtime deps (Python 3.11). Free data only.
+pandas>=2.1
+numpy>=1.26
+pyarrow>=15.0          # parquet for data/clean
+openpyxl>=3.1          # World Bank Pink Sheet .xlsx
+requests>=2.31         # FRED API + Stooq CSV + World Bank + Westmetall HTTP
+yfinance>=0.2.40       # 4th cross-check fallback
+lxml>=5.0              # Westmetall HTML table parse
+beautifulsoup4>=4.12   # Westmetall scrape fallback
+python-dotenv>=1.0     # .env FRED_API_KEY
+truststore>=0.9        # use OS trust store (works behind TLS interception)
+
+# v2 model (P3)
+scikit-learn>=1.4   # RandomForest direction classifier
+joblib>=1.3         # model persistence
+
+# UI (local dashboard, 127.0.0.1 only)
+flask>=3.0
+
+# dev
+pytest>=8.0
