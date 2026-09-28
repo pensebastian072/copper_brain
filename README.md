@@ -1,5 +1,12 @@
 # Copper Brain
 
+<!-- one-tap-install -->
+[![Download ZIP](https://img.shields.io/badge/Download-ZIP-2ea44f?style=for-the-badge&logo=github)](https://github.com/pensebastian072/copper_brain/archive/refs/heads/main.zip)
+
+**Run it on your computer in 3 steps:** 1) [download the ZIP](https://github.com/pensebastian072/copper_brain/archive/refs/heads/main.zip) · 2) unzip it · 3) double-click **`install.bat`** (Windows) or run **`./install.sh`** (macOS/Linux).
+The dashboard opens in your browser at `http://127.0.0.1:8077` - it runs only on your machine. Next time use `start.bat` / `./start.sh`.
+<!-- one-tap-install -->
+
 Dalio-style fundamental regime model for copper. Pulls free supply, demand,
 inventory, macro, and price data, then outputs a directional regime
 (bullish / bearish / neutral) over a 5–21 trading-day horizon as a JSON
